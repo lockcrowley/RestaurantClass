@@ -1,4 +1,5 @@
-const Order = require('../models/Order');
+const Order = require('../models/Order.model');
+const Table = require('../models/Table.model');
 
 class OrderService {
   async create({ order }) {
@@ -6,34 +7,37 @@ class OrderService {
       customerName,
       customerDocument,
       tableNumber,
-      items
+      items,
+      waiter
     } = order;
 
-    const orderAlreadyExistsToTable = await Order.find({
+    const table = await Table.findOne({
       tableNumber
     });
 
-    const orderAlreadyCompleted = orderAlreadyExistsToTable.find(order => !order.orderCompleted);
+    if(table.status !== 'FREE') throw new Error('Table is not available');
 
-    if (orderAlreadyCompleted) {
-      throw new Error('There is already an order for this table number');
+    let totalPrice = 0;
+
+    if(items.length) { 
+      totalPrice = items.reduce((total, item) => {
+        item.name = item.name.toLowerCase();
+        return total + (item.price * item.quantity);
+      }, 0);
     }
-
-    const totalPrice = items.reduce((total, item) => {
-      item.name = item.name.toLowerCase();
-      return total + (item.price * item.quantity);
-    }, 0);
 
     return await Order.create({
       customerName,
       customerDocument,
       tableNumber,
       items,
-      totalPrice
+      reserved: items.length === 0,
+      totalPrice,
+      waiter
     });
   }
 
-  async update({ customerDocument, tableNumber, items }) {
+  async update({ tableNumber, items, waiter }) {
     if(!tableNumber) {
       throw new Error('Table number is required to update the order');
     }
@@ -41,7 +45,6 @@ class OrderService {
     for (const item of items) {
       const result = await Order.updateOne(
         {
-          customerDocument,
           tableNumber,
           'items.name': item.name.toLowerCase()
         },
@@ -49,7 +52,8 @@ class OrderService {
           $inc: {
             'items.$.quantity': item.quantity,
             totalPrice: item.price * item.quantity
-          }
+          },
+          waiter
         }
       );
 

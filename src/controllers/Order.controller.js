@@ -1,4 +1,4 @@
-const OrderService = require('../services/OrderService.js');
+const OrderService = require('../services/Order.service.js');
 
 class OrderController {
   async createOrder(req, res) {
@@ -19,11 +19,12 @@ class OrderController {
   async updateOrder(req, res) {
     try {
       const tableNumber = req.params.tableNumber;
-      const items = req.body.items;
+      const { items, waiter } = req.body;
 
       const result = await OrderService.update({ 
         tableNumber, 
-        items
+        items,
+        waiter
       });
 
       res.status(200).json({
