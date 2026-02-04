@@ -18,12 +18,10 @@ class OrderController {
 
   async updateOrder(req, res) {
     try {
-      const customerDocument = req.params.customerDocument;
       const tableNumber = req.params.tableNumber;
       const items = req.body.items;
 
       const result = await OrderService.update({ 
-        customerDocument,
         tableNumber, 
         items
       });
@@ -38,11 +36,26 @@ class OrderController {
     }
   }
 
+  async completeOrder(req, res) {
+    try {
+      const orderId = req.params.orderId;
+      const result = await OrderService.completeOrder({ orderId });
+
+      res.status(200).json({
+        message: result
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: error.message 
+      });
+    }
+  }
+
   async getOrders(req, res) {
     try {
-      const { customerDocument, tableNumber } = req.query;
+      const { tableNumber } = req.query;
 
-      const orders = await OrderService.getAllOrders({ customerDocument, tableNumber});
+      const orders = await OrderService.getAllOrders({ tableNumber});
       res.status(200).json({
         orders
       });
@@ -82,11 +95,11 @@ class OrderController {
     }
   }
 
-  async deleteOrderByDocumentAndTableNumber(req, res) {
+  async deleteOrderByTableNumber(req, res) {
     try {
-      const { customerDocument, tableNumber } = req.params;
+      const { tableNumber } = req.params;
 
-      await OrderService.deleteOrderByDocumentAndTableNumber({ customerDocument, tableNumber });
+      await OrderService.deleteOrderByTableNumber({ tableNumber });
 
       res.status(200).json({
         message: 'Order deleted successfully'

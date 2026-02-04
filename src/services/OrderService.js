@@ -9,11 +9,13 @@ class OrderService {
       items
     } = order;
 
-    const orderAlreadyExistsToTable = await Order.findOne({
+    const orderAlreadyExistsToTable = await Order.find({
       tableNumber
     });
 
-    if (orderAlreadyExistsToTable) {
+    const orderAlreadyCompleted = orderAlreadyExistsToTable.find(order => !order.orderCompleted);
+
+    if (orderAlreadyCompleted) {
       throw new Error('There is already an order for this table number');
     }
 
@@ -32,8 +34,8 @@ class OrderService {
   }
 
   async update({ customerDocument, tableNumber, items }) {
-    if(!customerDocument && !tableNumber) {
-      throw new Error('Customer document and table number is required to update the order');
+    if(!tableNumber) {
+      throw new Error('Table number is required to update the order');
     }
 
     for (const item of items) {
@@ -65,22 +67,38 @@ class OrderService {
     return 'Order updated successfully';
   }
 
-  async getAllOrders({ customerDocument, tableNumber}) {
-    const filter = customerDocument ? { customerDocument } : tableNumber ? { tableNumber: Number(tableNumber) } : {};
+  async completeOrder({ orderId }) {
+    const order = await Order.findById(orderId);
+
+    if (!order) throw new Error('Order not found');
+
+    if (order.orderCompleted) throw new Error('Order is already completed');
+   
+    await Order.findByIdAndUpdate(orderId, { orderCompleted: true });
+
+    return 'Order completed successfully';
+  }
+
+  async getAllOrders({ tableNumber}) {
+    const filter = tableNumber ? { tableNumber: Number(tableNumber) } : {};
 
     return await Order.find(filter); 
   }
 
   async getOrderById({ orderId }) {
-    return await Order.findById(orderId); 
+    const order = await Order.findById(orderId);
+
+    if (!order) throw new Error('Order not found');
+
+    return order;
   }
 
   async deleteOrderById({ orderId }) {
     await Order.findByIdAndDelete(orderId); 
   }
 
-  async deleteOrderByDocumentAndTableNumber({ customerDocument, tableNumber }) {
-    await Order.deleteOne({ customerDocument, tableNumber: Number(tableNumber) }); 
+  async deleteOrderByTableNumber({ tableNumber }) {
+    await Order.deleteOne({ tableNumber: Number(tableNumber) }); 
   }
 }
 

@@ -6,10 +6,6 @@ const OrderSchema = new Schema({
     type: String, 
     required: true 
   },
-  customerDocument: { 
-    type: String, 
-    required: true 
-  },
   tableNumber: { 
     type: Number, 
     required: true 
@@ -36,6 +32,10 @@ const OrderSchema = new Schema({
       required: true 
     }
   }],
+  orderCompleted: {
+    type: Boolean,
+    default: false
+  },
   totalPrice: { 
     type: Number, 
     required: true 
