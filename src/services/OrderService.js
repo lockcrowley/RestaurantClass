@@ -65,16 +65,10 @@ class OrderService {
     return 'Order updated successfully';
   }
 
-  async getAllOrders() {
-    return await Order.find(); 
-  }
+  async getAllOrders({ customerDocument, tableNumber}) {
+    const filter = customerDocument ? { customerDocument } : tableNumber ? { tableNumber: Number(tableNumber) } : {};
 
-  async getOrderByCustomerDocument({ customerDocument }) {
-    return await Order.findOne({ customerDocument });
-  }
-
-  async getOrderByTableNumber({ tableNumber }) {
-    return await Order.findOne({ tableNumber }); 
+    return await Order.find(filter); 
   }
 
   async getOrderById({ orderId }) {
@@ -86,7 +80,7 @@ class OrderService {
   }
 
   async deleteOrderByDocumentAndTableNumber({ customerDocument, tableNumber }) {
-    await Order.deleteOne({ customerDocument, tableNumber }); 
+    await Order.deleteOne({ customerDocument, tableNumber: Number(tableNumber) }); 
   }
 }
 

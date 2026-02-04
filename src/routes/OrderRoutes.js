@@ -6,11 +6,7 @@ router.post('/create', OrderController.createOrder);
 
 router.put('/update/:customerDocument/:tableNumber', OrderController.updateOrder);
 
-router.get('/all', OrderController.getOrders);
-
-router.get('/customer/:customerDocument', OrderController.getOrderByCustomerDocument);
-
-router.get('/table/:tableNumber', OrderController.getOrderByTableNumber);
+router.get('/', OrderController.getOrders);
 
 router.get('/id/:orderId', OrderController.getOrderById);
 
