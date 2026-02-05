@@ -6,4 +6,8 @@ router.post('/create', TableController.createTable);
 
 router.get('/', TableController.getTables);
 
+router.put('/update/:id', TableController.updateTableStatus);
+
+router.delete('/delete/:id', TableController.deleteTable);
+
 module.exports = router;

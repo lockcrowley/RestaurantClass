@@ -24,6 +24,11 @@ const TableSchema = new Schema({
     default: null
   },
 
+  capacity: {
+    type: Number,
+    required: true
+  },
+
   updatedAt: {
     type: Date,
     default: Date.now

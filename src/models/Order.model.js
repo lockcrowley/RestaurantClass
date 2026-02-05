@@ -2,15 +2,16 @@ const { Schema, model, Types } = require('mongoose');
 const { randomUUID } = require('crypto');
 
 const OrderSchema = new Schema({
-   customerName: { 
-    type: String, 
-    required: true 
-  },
-
   table: {
     type: Types.ObjectId,
     ref: 'tables',
     required: true
+  },
+
+  reservation: {
+    type: Types.ObjectId,
+    ref: 'reservations',
+    required: false
   },
 
   items: {
