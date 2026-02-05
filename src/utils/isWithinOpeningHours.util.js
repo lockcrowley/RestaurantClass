@@ -1,21 +1,21 @@
-const RestaurantConfig = require('../models/RestaurantConfig.model.js');
-
-module.exports = (dateUTC) => {
-  const { openingHours: { open, close } } = RestaurantConfig.findOne();
+module.exports = (dateUTC, open, close) => {
+  const date = new Date(dateUTC);
 
   const localDate = new Date(
-    dateUTC.getTime() - (3 * 60 * 60 * 1000)
+    date.toLocaleString('en-US', {
+      timeZone: 'America/Sao_Paulo'
+    })
   );
 
   const [openH, openM] = open.split(':').map(Number);
   const [closeH, closeM] = close.split(':').map(Number);
 
-  const minutes =
+  const currentMinutes =
     localDate.getHours() * 60 + localDate.getMinutes();
 
   const openMinutes = openH * 60 + openM;
   const closeMinutes = closeH * 60 + closeM;
 
-  return minutes >= openMinutes && minutes <= closeMinutes;
-}
-
+  return currentMinutes >= openMinutes &&
+         currentMinutes <= closeMinutes;
+};

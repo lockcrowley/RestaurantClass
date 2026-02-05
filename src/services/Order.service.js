@@ -4,14 +4,8 @@ const Reservation = require('../models/Reservation.model');
 const isNowWithinReservation = require('../utils/isNowWithinReservation.util.js'); 
 
 class OrderService {
-  async create({ order }) {
-    const {
-      tableNumber,
-      customerDocument,
-      items,
-      waiter
-    } = order;
-
+  async create({ tableNumber, customerDocument, items, waiter }) {
+  
     const table = await Table.findOne({
       tableNumber
     });
@@ -20,23 +14,37 @@ class OrderService {
       throw new Error('Table not found');
     }
 
-    const reservation = await Reservation.findOne({
+    const now = new Date();
+
+    const customerReservation  = await Reservation.findOne({
       status: 'RESERVED',
       customerDocument
     });
 
-    if(reservation && reservation.table.toString() !== table._id.toString()) {
-      throw new Error('Reservation does not belong to the informed table');
-    }
+    const tableReservation = await Reservation.findOne({
+      table: table._id,
+      status: 'RESERVED',
+      startAt: { $lte: now },
+      endAt: { $gte: now }
+    });
 
-    if(reservation && !isNowWithinReservation(reservation)) {
-      throw new Error('Order outside reservation time range');
-    }
+    if (
+      tableReservation &&
+      tableReservation.customerDocument !== customerDocument
+    ) throw new Error('Table is reserved for another customer at this time');
 
-    if(table.status !== 'FREE') {
-      throw new Error('Table is currently occupied');
-    }
+    if (
+      customerReservation &&
+      customerReservation.table.toString() !== table._id.toString()
+    ) throw new Error('Reservation does not belong to the informed table');
 
+    if (
+      customerReservation &&
+      !isNowWithinReservation(customerReservation)
+    ) throw new Error('Order outside reservation time range');
+
+    if (table.status === 'OCCUPIED') throw new Error('Table is currently occupied');
+    
     const totalPrice = items.reduce((total, item) => {
       item.name = item.name.toLowerCase();
       return total + (item.price * item.quantity);
@@ -44,14 +52,14 @@ class OrderService {
 
     const orderCreated = await Order.create({
       table: table._id,
-      reservation: reservation?._id || null,
+      reservation: customerReservation?._id || null,
       items,
       totalPrice,
       waiter
     });
 
     await Table.findByIdAndUpdate(table._id, {
-      status: reservation ? 'RESERVED' : 'OCCUPIED',
+      status: customerReservation  ? 'RESERVED' : 'OCCUPIED',
       currentOrder: orderCreated._id,
       updatedAt: Date.now()
     });
@@ -60,30 +68,34 @@ class OrderService {
   }
 
   async updateItemsAtOrder({ orderId, items, waiter }) {
-    if(!orderId) {
+    if (!orderId) {
       throw new Error('Order ID is required to update the order');
     }
 
     for (const item of items) {
-      const result = await Order.findByIdAndUpdate(
-        { _id: orderId,
-          'items.name': item.name.toLowerCase()
+      item.name = item.name.toLowerCase();
+
+      const result = await Order.updateOne(
+        {
+          _id: orderId,
+          'items.name': item.name
         },
         {
           $inc: {
             'items.$.quantity': item.quantity,
             totalPrice: item.price * item.quantity
           },
-          waiter
+          $set: { waiter }
         }
       );
 
       if (result.matchedCount === 0) {
-        await Order.findByIdAndUpdate(
+        await Order.updateOne(
           { _id: orderId },
           {
             $push: { items: item },
-            $inc: { totalPrice: item.price * item.quantity }
+            $inc: { totalPrice: item.price * item.quantity },
+            $set: { waiter }
           }
         );
       }
@@ -91,7 +103,7 @@ class OrderService {
 
     const table = await Table.findOne({ currentOrder: orderId });
 
-    if (table.status === 'RESERVED') {
+    if (table && table.status === 'RESERVED') {
       await Table.findByIdAndUpdate(table._id, {
         status: 'OCCUPIED',
         updatedAt: Date.now()
@@ -107,10 +119,13 @@ class OrderService {
     }
 
     for (const item of items) {
-      await Order.findOneAndUpdate(
+      item.name = item.name.toLowerCase();
+
+      // decrementa quantidade e total
+      const result = await Order.updateOne(
         {
           _id: orderId,
-          'items.name': item.name.toLowerCase()
+          'items.name': item.name
         },
         {
           $inc: {
@@ -120,37 +135,28 @@ class OrderService {
         }
       );
 
-      await Order.findByIdAndUpdate(
-        orderId,
-        {
-          $pull: {
-            items: { quantity: { $lte: 0 } }
-          }
-        }
-      );
-    }
-
-    await Order.findByIdAndUpdate(
-      orderId,
-      [
-        {
-          $set: {
-            totalPrice: {
-              $cond: [
-                { $lt: ['$totalPrice', 0] },
-                0,
-                '$totalPrice'
-              ]
+      // remove itens com quantidade <= 0
+      if (result.matchedCount > 0) {
+        await Order.updateOne(
+          { _id: orderId },
+          {
+            $pull: {
+              items: { quantity: { $lte: 0 } }
             }
           }
-        }
-      ]
+        );
+      }
+    }
+    await Order.updateOne(
+      { _id: orderId },
+      {
+        $max: { totalPrice: 0 }
+      }
     );
 
     return 'Items removed successfully';
   }
-
-
+  
   async completeOrder({ orderId }) {
     const order = await Order.findById(orderId);
 
@@ -172,8 +178,8 @@ class OrderService {
     return 'Order completed successfully';
   }
 
-  async getAllOrders({ tableNumber}) {
-    const filter = tableNumber ? { tableNumber: Number(tableNumber) } : {};
+  async getAllOrders({ tableId }) {
+    const filter = tableId ? { table: tableId } : {};
 
     return await Order.find(filter); 
   }

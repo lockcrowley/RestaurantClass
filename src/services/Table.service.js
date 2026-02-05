@@ -1,11 +1,12 @@
 const Table = require('../models/Table.model');
 
 class TableService {
-  async create({ table }) {
-    const { tableNumber, location } = table;
+  async create({ tableNumber, location, capacity }) {
+   
     return await Table.create({
       tableNumber,
-      location
+      location,
+      capacity
     });
   }
 

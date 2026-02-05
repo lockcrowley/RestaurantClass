@@ -1,4 +1,4 @@
-function isNowWithinReservation(reservation) {
+module.exports = (reservation) => {
   const now = new Date();
 
   return now >= reservation.startAt && now <= reservation.endAt;

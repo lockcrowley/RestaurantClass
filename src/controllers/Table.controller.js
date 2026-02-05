@@ -3,7 +3,9 @@ const TableService = require('../services/Table.service.js');
 class TableController {
   async createTable(req, res) {
     try {
-      const tableCreated = await TableService.create({ table: req.body }); 
+       const { tableNumber, location, capacity } = req.body;
+
+      const tableCreated = await TableService.create({ tableNumber, location, capacity }); 
 
       res.status(201).json({
         message: "Table created successfully", 
@@ -34,7 +36,7 @@ class TableController {
     try {
       const tableId = req.params.id;
       const { status } = req.body;
-      
+
       const updatedTable = await TableService.updateTableStatus(tableId, status);
 
       res.status(200).json({

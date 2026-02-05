@@ -3,7 +3,14 @@ const OrderService = require('../services/Order.service.js');
 class OrderController {
   async createOrder(req, res) {
     try {
-      const orderCreated = await OrderService.create({ order: req.body });
+      const {
+        tableNumber,
+        customerDocument,
+        items,
+        waiter
+      } = req.body;
+
+      const orderCreated = await OrderService.create({ tableNumber, customerDocument, items, waiter });
 
       res.status(201).json({
         message: "Order created successfully", 
@@ -46,7 +53,7 @@ class OrderController {
         orderId,
         items
       });
-      
+
       res.status(200).json({
         message: result
       });
@@ -75,9 +82,9 @@ class OrderController {
 
   async getOrders(req, res) {
     try {
-      const { tableNumber } = req.query;
+      const { tableId } = req.query;
 
-      const orders = await OrderService.getAllOrders({ tableNumber});
+      const orders = await OrderService.getAllOrders({ tableId });
 
       res.status(200).json({
         orders
